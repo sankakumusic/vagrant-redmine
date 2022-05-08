@@ -24,7 +24,6 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   # NOTE: This will enable public access to the opened port
   config.vm.network "forwarded_port", guest: 80, host: 8080
-  config.vm.network "forwarded_port", guest: 3000, host: 3000
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine and only allow access
   # via 127.0.0.1 to disable public access
@@ -75,12 +74,12 @@ Vagrant.configure("2") do |config|
   SHELL
   config.vm.provision "file", source: "./config/database.yml", destination: "/opt/redmine-4.2.5/config/database.yml"
   config.vm.provision "file", source: "./config/initializers/mysqlpls.rb", destination: "/opt/redmine-4.2.5/config/initializers/mysqlpls.rb"
-  config.vm.provision "file", source: "./Gemfile.local", destination: "/opt/redmine-4.2.5/Gemfile.local"
+  # config.vm.provision "file", source: "./Gemfile.local", destination: "/opt/redmine-4.2.5/Gemfile.local"
   config.vm.provision "file", source: "./createdb.sql", destination: "/tmp/createdb.sql"
-  config.vm.provision "file", source: "./passenger.conf", destination: "/tmp/passenger.conf"
+  # config.vm.provision "file", source: "./passenger.conf", destination: "/tmp/passenger.conf"
   config.vm.provision "file", source: "./redmine.conf", destination: "/tmp/redmine.conf"
   config.vm.provision "shell", inline: "mv /tmp/createdb.sql /work/createdb.sql"
-  config.vm.provision "shell", inline: "mv /tmp/passenger.conf /work/passenger.conf"
+  # config.vm.provision "shell", inline: "mv /tmp/passenger.conf /work/passenger.conf"
   config.vm.provision "shell", inline: "mv /tmp/redmine.conf /work/redmine.conf"
   config.vm.provision "shell", inline: <<-SHELL
     groupadd mysql
@@ -100,12 +99,20 @@ Vagrant.configure("2") do |config|
     /etc/init.d/mysql.server start
     update-rc.d -f mysql.server defaults
     bin/mysqladmin -u root password redmine
+    mysql -u root -predmine < /work/createdb.sql
   SHELL
   config.vm.provision "shell", inline: <<-SHELL
-    mysql -u root -predmine < /work/createdb.sql
-    snap install ruby --classic --channel=2.7/stable
+    apt install software-properties-common
+    apt-add-repository -y ppa:rael-gc/rvm
+    apt update
+    apt install -y rvm libssl-dev libreadline-dev zlib1g-dev gcc g++ make apache2
+    echo "source /etc/profile.d/rvm.sh" | tee -a /etc/profile
+    source /etc/profile.d/rvm.sh
+    rvm install 2.7.2
+    rvm use 2.7.2 --default
+    gem install bundler
+    gem install passenger
     cd /opt/redmine-4.2.5
-    apt install -y libssl-dev libreadline-dev zlib1g-dev gcc g++ make
     bundle install --without development test
     bundle exec rake generate_secret_token
     RAILS_ENV=production bundle exec rake db:migrate
@@ -113,19 +120,25 @@ Vagrant.configure("2") do |config|
     groupadd redmine
     useradd -g redmine redmine
     mkdir -p tmp tmp/pdf public/plugin_assets
-    sudo chown -R redmine:redmine files log tmp public/plugin_assets
-    sudo chmod -R 755 files log tmp public/plugin_assets
-    # bundle exec rails server webrick -e production
-  SHELL
-  config.vm.provision "shell", inline: <<-SHELL
-    sudo apt install -y apache2 libapache2-mod-passenger
-    cd /etc/apache2/mods-available
-    mv passenger.conf passenger.conf.bak
-    cp /work/passenger.conf passenger.conf
+    chown -R redmine:redmine files log tmp public/plugin_assets
+    chown redmine:redmine environment.rb 
+    chmod -R 755 files log tmp public/plugin_assets
     ln -s /opt/redmine-4.2.5/public /var/www/html/redmine
     chown -R redmine:redmine /var/www/html/redmine
-    cp /work/redmine.conf /etc/apache2/sites-available/redmine.conf
-    a2ensite redmine.conf
-    sudo systemctl reload apache2
+    # bundle exec rails server webrick -e production
+  SHELL
+  
+  config.vm.provision "shell", inline: <<-SHELL
+    apt install -y libcurl4-openssl-dev apache2-dev libapr1-dev libaprutil1-dev
+    dd if=/dev/zero of=/swap bs=1M count=1024
+    mkswap /swap
+    swapon /swap
+    passenger-install-apache2-module --auto --languages ruby
+    # 事前にredmine.confを作成しておく
+    cp /work/redmine.conf /etc/apache2/conf-available/redmine.conf
+    passenger-install-apache2-module --snippet >> /etc/apache2/conf-available/redmine.conf 
+    a2enconf redmine.conf
+    apache2ctl restart
+    systemctl reload apache2
   SHELL
 end
