@@ -7,3 +7,5 @@ module ActiveRecord
     end
   end
 end
+
+# c.f. https://www.redmine.org/boards/2/topics/54308

@@ -65,7 +65,6 @@ Vagrant.configure("2") do |config|
   
   config.vm.provision "shell", inline: <<-SHELL
     apt update
-    # apt-get install -y apache2 mysql-server
     mkdir /work
     cd /work
     wget "https://www.redmine.org/releases/redmine-4.2.5.tar.gz"
@@ -74,12 +73,9 @@ Vagrant.configure("2") do |config|
   SHELL
   config.vm.provision "file", source: "./config/database.yml", destination: "/opt/redmine-4.2.5/config/database.yml"
   config.vm.provision "file", source: "./config/initializers/mysqlpls.rb", destination: "/opt/redmine-4.2.5/config/initializers/mysqlpls.rb"
-  # config.vm.provision "file", source: "./Gemfile.local", destination: "/opt/redmine-4.2.5/Gemfile.local"
   config.vm.provision "file", source: "./createdb.sql", destination: "/tmp/createdb.sql"
-  # config.vm.provision "file", source: "./passenger.conf", destination: "/tmp/passenger.conf"
   config.vm.provision "file", source: "./redmine.conf", destination: "/tmp/redmine.conf"
   config.vm.provision "shell", inline: "mv /tmp/createdb.sql /work/createdb.sql"
-  # config.vm.provision "shell", inline: "mv /tmp/passenger.conf /work/passenger.conf"
   config.vm.provision "shell", inline: "mv /tmp/redmine.conf /work/redmine.conf"
   config.vm.provision "shell", inline: <<-SHELL
     groupadd mysql
@@ -119,22 +115,22 @@ Vagrant.configure("2") do |config|
     RAILS_ENV=production REDMINE_LANG=ja bundle exec rake redmine:load_default_data
     groupadd redmine
     useradd -g redmine redmine
-    mkdir -p tmp tmp/pdf public/plugin_assets
+    mkdir -p tmp tmp/pdf public/plugin_assets tmp/cache
     chown -R redmine:redmine files log tmp public/plugin_assets
-    chown redmine:redmine environment.rb 
+    chown redmine:redmine config/environment.rb 
     chmod -R 755 files log tmp public/plugin_assets
+    chmod -R 777 tmp/cache
     ln -s /opt/redmine-4.2.5/public /var/www/html/redmine
     chown -R redmine:redmine /var/www/html/redmine
     # bundle exec rails server webrick -e production
   SHELL
-  
+
   config.vm.provision "shell", inline: <<-SHELL
     apt install -y libcurl4-openssl-dev apache2-dev libapr1-dev libaprutil1-dev
     dd if=/dev/zero of=/swap bs=1M count=1024
     mkswap /swap
     swapon /swap
     passenger-install-apache2-module --auto --languages ruby
-    # 事前にredmine.confを作成しておく
     cp /work/redmine.conf /etc/apache2/conf-available/redmine.conf
     passenger-install-apache2-module --snippet >> /etc/apache2/conf-available/redmine.conf 
     a2enconf redmine.conf
