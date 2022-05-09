@@ -119,7 +119,7 @@ Vagrant.configure("2") do |config|
     chown -R redmine:redmine files log tmp public/plugin_assets
     chown redmine:redmine config/environment.rb 
     chmod -R 755 files log tmp public/plugin_assets
-    chmod -R 777 tmp/cache
+    # chmod -R 777 tmp/cache
     ln -s /opt/redmine-4.2.5/public /var/www/html/redmine
     chown -R redmine:redmine /var/www/html/redmine
     # bundle exec rails server webrick -e production
