@@ -64,7 +64,7 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   
   config.vm.provision "shell", inline: <<-SHELL
-    apt update
+    apt-get update
     mkdir /work
     cd /work
     wget "https://www.redmine.org/releases/redmine-4.2.5.tar.gz"
@@ -85,7 +85,7 @@ Vagrant.configure("2") do |config|
     mv mysql-5.5.62-linux-glibc2.12-x86_64  /usr/local/mysql
     cd /usr/local/mysql
     chown -R mysql:mysql *
-    apt install -y libaio1 libncurses5
+    apt-get install -y libaio1 libncurses5
     scripts/mysql_install_db --user=mysql
     chown -R root .
     chown -R mysql data
@@ -98,10 +98,10 @@ Vagrant.configure("2") do |config|
     mysql -u root -predmine < /work/createdb.sql
   SHELL
   config.vm.provision "shell", inline: <<-SHELL
-    apt install software-properties-common
+    apt-get install software-properties-common
     apt-add-repository -y ppa:rael-gc/rvm
-    apt update
-    apt install -y rvm libssl-dev libreadline-dev zlib1g-dev gcc g++ make apache2
+    apt-get update
+    apt-get install -y rvm libssl-dev libreadline-dev zlib1g-dev gcc g++ make apache2
     echo "source /etc/profile.d/rvm.sh" | tee -a /etc/profile
     source /etc/profile.d/rvm.sh
     rvm install 2.7.2
@@ -126,7 +126,7 @@ Vagrant.configure("2") do |config|
   SHELL
 
   config.vm.provision "shell", inline: <<-SHELL
-    apt install -y libcurl4-openssl-dev apache2-dev libapr1-dev libaprutil1-dev
+    apt-get install -y libcurl4-openssl-dev apache2-dev libapr1-dev libaprutil1-dev
     dd if=/dev/zero of=/swap bs=1M count=1024
     mkswap /swap
     swapon /swap
